@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Slack メッセージ非表示",
+  "version": "1.0.0",
+
+  "author": "se.ishiguro.tomohiro@gmail.com",
+  "description": "Slack ch. で 'done' というリアクションがついたメッセージを非表示にする",
+
+  "icons": {
+    "16" : "images/shikakukei-16.png",
+    "32" : "images/shikakukei-32.png",
+    "48" : "images/shikakukei-48.png",
+    "128" : "images/shikakukei-128.png"
+  },
+
+  "permissions": [ "storage" ],
+  "host_permissions": [ "https://app.slack.com/client/*" ],
+
+  "background": {
+    "service_worker": "background.js",
+    "persist": false
+  },
+
+  "content_scripts": [
+    {
+      "matches": [ "https://app.slack.com/client/*" ],
+      "js": [ "content_scripts.js" ]
+    }
+  ],
+
+  "action": {}
+}
