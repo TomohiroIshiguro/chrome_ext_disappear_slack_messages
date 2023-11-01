@@ -15,7 +15,7 @@ const TRANSPARENCY_MIDDLE = 0.3; // 透過率 70%
 // Slach ch. のメッセージに DONE リアクションがついていたら区別できるようにする
 function constolMessagesWithDoneReaction(isDisappear) {
   console.log("----- Control Slack View -----");
-  const messageItems = document.querySelectorAll(".p-workspace__primary_view .c-message_kit__gutter__right");
+  const messageItems = document.querySelectorAll(".p-workspace__primary_view_body .c-message_kit__gutter__right");
   messageItems.forEach(item => {
     item.style.visibility = "visible"; // DONE リアクションを削除したら透過をリセットする
     item.style.opacity = TRANSPARENCY_VISIBLE; // DONE リアクションを削除したら透過をリセットする
