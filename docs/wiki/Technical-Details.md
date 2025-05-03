@@ -11,6 +11,58 @@
 3. **コンテンツスクリプト** (`content_scripts.js`): Slack UIのDOM操作
 4. **アイコン** (`images/`): 拡張機能のアイコン画像
 
+### コンポーネント間の関係
+
+```mermaid
+graph TD
+    subgraph "Chrome Browser"
+        A[Extension Icon] -->|Click| B[background.js]
+        B -->|State Management| C[chrome.storage.session]
+        C -->|Read State| B
+        B -->|Send Message| D[content_scripts.js]
+        D -->|DOM Manipulation| E[Slack UI]
+        E -->|DOM Events| D
+    end
+    
+    style A fill:#f9d77e,stroke:#f9bc02
+    style B fill:#a8d1ff,stroke:#1a73e8
+    style C fill:#c9e1a5,stroke:#61b15a
+    style D fill:#ffb8b8,stroke:#e53935
+    style E fill:#e1bee7,stroke:#8e24aa
+```
+
+### コンポーネントの役割
+
+```mermaid
+flowchart LR
+    subgraph "background.js"
+        BG1[状態管理] --> BG2[イベント処理]
+        BG2 --> BG3[メッセージ送信]
+    end
+    
+    subgraph "content_scripts.js"
+        CS1[メッセージ受信] --> CS2[メッセージ表示制御]
+        CS2 --> CS3[DOM監視]
+    end
+    
+    subgraph "Slack UI"
+        SU1[メッセージ表示] --> SU2[リアクション表示]
+    end
+    
+    BG3 -->|chrome.tabs.sendMessage| CS1
+    CS2 -->|DOM操作| SU1
+    SU2 -->|MutationObserver| CS3
+    
+    style BG1 fill:#a8d1ff,stroke:#1a73e8
+    style BG2 fill:#a8d1ff,stroke:#1a73e8
+    style BG3 fill:#a8d1ff,stroke:#1a73e8
+    style CS1 fill:#ffb8b8,stroke:#e53935
+    style CS2 fill:#ffb8b8,stroke:#e53935
+    style CS3 fill:#ffb8b8,stroke:#e53935
+    style SU1 fill:#e1bee7,stroke:#8e24aa
+    style SU2 fill:#e1bee7,stroke:#8e24aa
+```
+
 ## ファイル構造
 
 ```
@@ -122,6 +174,67 @@ chrome_ext_disappear_slack_messages/
    - コンテンツスクリプトがSlack UIのDOMを操作
    - 対象の絵文字リアクションを検出し、メッセージの表示スタイルを変更
    - DOMの変更を監視し、新しく表示されるメッセージにも処理を適用
+
+### 実行フロー図
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Icon as Extension Icon
+    participant BG as background.js
+    participant Storage as chrome.storage.session
+    participant CS as content_scripts.js
+    participant Slack as Slack UI
+    
+    %% 初期化フロー
+    Note over User,Slack: 初期化フロー
+    User->>+BG: 拡張機能インストール
+    BG->>Storage: toggleDisappear: false を設定
+    User->>Slack: Slackページを開く
+    Slack-->>BG: chrome.tabs.onUpdated イベント
+    BG->>+Storage: 状態を取得
+    Storage-->>-BG: toggleDisappear の値を返す
+    BG->>CS: メッセージを送信
+    CS->>Slack: メッセージの表示を制御
+    CS->>Slack: MutationObserver を設定
+    
+    %% 表示モード切り替えフロー
+    Note over User,Slack: 表示モード切り替えフロー
+    User->>Icon: クリック
+    Icon-->>BG: chrome.action.onClicked イベント
+    BG->>+Storage: 現在の状態を取得
+    Storage-->>-BG: toggleDisappear の値を返す
+    BG->>Storage: toggleDisappear の値を反転して保存
+    BG->>CS: 新しい表示モードでメッセージを送信
+    CS->>Slack: メッセージの表示を更新
+    
+    %% メッセージ処理フロー
+    Note over User,Slack: メッセージ処理フロー
+    User->>Slack: スクロールまたはチャンネル切り替え
+    Slack-->>CS: DOM変更イベント
+    CS->>Slack: 新しいメッセージの表示を制御
+```
+
+### データフロー図
+
+```mermaid
+flowchart TD
+    User([ユーザー]) -->|1. クリック| Icon[拡張機能アイコン]
+    Icon -->|2. イベント発火| BG[background.js]
+    BG -->|3. 状態取得| Storage[(chrome.storage.session)]
+    Storage -->|4. 状態返却| BG
+    BG -->|5. 状態更新| Storage
+    BG -->|6. メッセージ送信| CS[content_scripts.js]
+    CS -->|7. DOM操作| Slack[Slack UI]
+    Slack -->|8. DOM変更通知| CS
+    
+    style User fill:#f9f9f9,stroke:#333
+    style Icon fill:#f9d77e,stroke:#f9bc02
+    style BG fill:#a8d1ff,stroke:#1a73e8
+    style Storage fill:#c9e1a5,stroke:#61b15a
+    style CS fill:#ffb8b8,stroke:#e53935
+    style Slack fill:#e1bee7,stroke:#8e24aa
+```
 
 ## 拡張方法
 
