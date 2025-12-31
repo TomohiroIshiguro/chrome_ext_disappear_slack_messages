@@ -152,20 +152,35 @@ function debouncedControlMessages(isDisappear) {
   }, DEBOUNCE_DELAY);
 }
 
+/** リトライ設定 */
+const RETRY_CONFIG = Object.freeze({
+  MAX_ATTEMPTS: 5,      // 最大リトライ回数
+  DELAY_MS: 500,        // リトライ間隔（ミリ秒）
+});
+
 /**
  * DOM更新を監視するObserverを設定
  * メインチャンネルとスレッドパネルの両方を監視
  * @param {boolean} isDisappear - Disappearモードかどうか
+ * @param {number} attempt - 現在のリトライ回数（内部使用）
  */
-function setupScrollObserver(isDisappear) {
+function setupScrollObserver(isDisappear, attempt = 1) {
   // 既存のObserverをすべて解除
   currentObservers.forEach(observer => observer.disconnect());
   currentObservers = [];
 
   const scrollContainers = document.querySelectorAll(SELECTORS.SCROLL_CONTAINER);
 
+  // スクロールコンテナが見つからない場合はリトライ
   if (scrollContainers.length === 0) {
-    console.warn("[Content] スクロールコンテナが見つかりません");
+    if (attempt < RETRY_CONFIG.MAX_ATTEMPTS) {
+      console.debug(`[Content] スクロールコンテナが見つかりません。リトライ ${attempt}/${RETRY_CONFIG.MAX_ATTEMPTS}...`);
+      setTimeout(() => {
+        setupScrollObserver(isDisappear, attempt + 1);
+      }, RETRY_CONFIG.DELAY_MS);
+    } else {
+      console.debug("[Content] スクロールコンテナが見つかりませんでした（SPA読み込み待機タイムアウト）");
+    }
     return;
   }
 
